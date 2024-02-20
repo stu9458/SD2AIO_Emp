@@ -41,6 +41,7 @@
 #include <SPI.h>
 #include <TJpg_Decoder.h>
 #include <EEPROM.h>
+#include <SoftwareSerial.h>
 #include "qr.h"
 #include "number.h"
 #include "weathernum.h"
@@ -57,7 +58,7 @@
 //设置太空人图片是否使用
 #define imgAst_EN 1
 
-
+#define INITIAL_MUSIC 1
 
 #if WM_EN
 #include <WiFiManager.h>
@@ -72,10 +73,6 @@ WiFiManager wm; // global wm instance
 #define DHTTYPE DHT11
 DHT dht(DHTPIN,DHTTYPE);
 #endif
-
-
-
-
 
 /* *****************************************************************
  *  字库、图片库
@@ -101,11 +98,17 @@ int Anim = 0;           //太空人图标显示指针记录
 int AprevTime = 0;      //太空人更新时间记录
 #endif
 
-
-
 /* *****************************************************************
  *  参数设置
  * *****************************************************************/
+
+SoftwareSerial ch7800Serial(-1, 16); // CH7800模块连接到Arduino的软串口引脚16
+uint8_t cmd = 0x13; //播放一次歌曲
+uint8_t len_h = 0x00;
+uint8_t len_l = 0x02;
+uint8_t dd[2] = {0x00, 0x0b}; //播放第11首歌
+
+uint8_t InterruptPin = 4;
 
 struct config_type
 {
@@ -740,10 +743,14 @@ void DisplayLogo(int x, int y) {
 void setup()
 {
   Serial.begin(115200);
+  ch7800Serial.begin(9600);
   EEPROM.begin(1024);
   // WiFi.forceSleepWake();
   // wm.resetSettings();    //在初始化中使wifi重置，需重新配置WiFi
-  
+
+  pinMode(InterruptPin, INPUT_PULLUP); // 设置中断引脚为输入并使用上拉电阻
+  attachInterrupt(digitalPinToInterrupt(InterruptPin), Button_Reset, RISING); // 将中断服务程序注册到引脚上，并在上升沿触发中断
+
  #if DHT_EN
   dht.begin();
   //从eeprom读取DHT传感器使能标志
@@ -764,6 +771,16 @@ void setup()
   tft.setRotation(LCD_Rotation);
   tft.fillScreen(0x0000);
   tft.setTextColor(TFT_BLACK, bgColor);
+
+#if INITIAL_MUSIC
+  ch7800Serial.write(0x7e);
+  ch7800Serial.write(cmd);
+  ch7800Serial.write(len_h);
+  ch7800Serial.write(len_l);
+  for (int i=0; i < len_l; i++)
+      ch7800Serial.write(dd[i]);
+  ch7800Serial.write(0xef);
+#endif
 
   targetTime = millis() + 1000; 
   readwificonfig();//读取存储的wifi信息
@@ -819,7 +836,6 @@ void setup()
   setSyncProvider(getNtpTime);
   setSyncInterval(300);
 
-  
   TJpgDec.setJpgScale(1);
   TJpgDec.setSwapBytes(true);
   TJpgDec.setCallback(tft_output);
@@ -858,6 +874,7 @@ void loop()
 {
   LCD_reflash(0);
   Serial_set();
+
 }
 
 void LCD_reflash(int en)
@@ -939,8 +956,6 @@ void getCityCode(){
     {
       Serial.println("获取城市代码失败");  
     }
-    
-    
   } else {
     Serial.println("请求城市代码错误：");
     Serial.println(httpCode);
@@ -1348,4 +1363,9 @@ void sendNTPpacket(IPAddress &address)
   Udp.beginPacket(address, 123); //NTP requests are to port 123
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
+}
+
+void Button_Reset(void)
+{
+  return;
 }
