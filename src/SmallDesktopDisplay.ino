@@ -45,6 +45,7 @@
 #include "qr.h"
 #include "number.h"
 #include "weathernum.h"
+#include "ESP8266TimerInterrupt.h"
 
 
 #define Version  "SDD V1.3.4"
@@ -58,7 +59,10 @@
 //设置太空人图片是否使用
 #define imgAst_EN 1
 
-#define INITIAL_MUSIC 1
+#define INITIAL_MUSIC 0
+
+#define TIMER_INTERVAL_MS 1000
+#define RESET_TIMES 5 //搭配TIMER_INTERVAL_MS預計是5秒
 
 #if WM_EN
 #include <WiFiManager.h>
@@ -343,6 +347,18 @@ void IndoorTem()
   clk.deleteSprite();
 }
 #endif
+
+{
+  uint8_t status = digitalRead(InterruptPin);
+  if (status == 0) {
+    Serial.println("Reset...");
+    ESP.restart();
+    //Reset_Count++;
+  } else Reset_Count = 0;
+  
+  if (Reset_Count >= RESET_TIMES)
+    ESP.restart();
+}
 
 #if !WM_EN
 //微信配网函数
@@ -740,16 +756,23 @@ void DisplayLogo(int x, int y) {
   TJpgDec.drawJpg(x,y,keyes_logo, sizeof(keyes_logo));//顯示開機Logo
 }
 
+ESP8266Timer ITimer;
 void setup()
 {
   Serial.begin(115200);
   ch7800Serial.begin(9600);
+
+  pinMode(4, INPUT_PULLUP); // 设置中断引脚为输入并使用上拉电阻
+  // Interval in microsecs
+  if (ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, Button_Reset)) {
+    Serial.print(F("Starting ITimer OK, millis() = ")); Serial.println(millis());
+  } else {
+    Serial.println(F("Can't set ITimer correctly. Select another freq. or interval"));
+  }
+
   EEPROM.begin(1024);
   // WiFi.forceSleepWake();
   // wm.resetSettings();    //在初始化中使wifi重置，需重新配置WiFi
-
-  pinMode(InterruptPin, INPUT_PULLUP); // 设置中断引脚为输入并使用上拉电阻
-  attachInterrupt(digitalPinToInterrupt(InterruptPin), Button_Reset, RISING); // 将中断服务程序注册到引脚上，并在上升沿触发中断
 
  #if DHT_EN
   dht.begin();
@@ -868,13 +891,10 @@ void setup()
   Wifi_en = 0;
 }
 
-
-
 void loop()
 {
   LCD_reflash(0);
   Serial_set();
-
 }
 
 void LCD_reflash(int en)
@@ -1363,9 +1383,4 @@ void sendNTPpacket(IPAddress &address)
   Udp.beginPacket(address, 123); //NTP requests are to port 123
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
-}
-
-void Button_Reset(void)
-{
-  return;
 }
