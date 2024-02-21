@@ -348,6 +348,8 @@ void IndoorTem()
 }
 #endif
 
+volatile uint8_t Reset_Count = 0;
+void Button_Reset(void)
 {
   uint8_t status = digitalRead(InterruptPin);
   if (status == 0) {
