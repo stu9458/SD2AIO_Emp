@@ -348,17 +348,15 @@ void IndoorTem()
 }
 #endif
 
-volatile uint8_t Reset_Count = 0;
+time_t Reset_TimeCount = second();
 void Button_Reset(void)
 {
   uint8_t status = digitalRead(InterruptPin);
   if (status == 0) {
-    Serial.println("Reset...");
-    ESP.restart();
-    //Reset_Count++;
-  } else Reset_Count = 0;
+    //
+  } else Reset_TimeCount = second();
   
-  if (Reset_Count >= RESET_TIMES)
+  if (second()-Reset_TimeCount >= RESET_TIMES)
     ESP.restart();
 }
 
@@ -766,11 +764,11 @@ void setup()
 
   pinMode(4, INPUT_PULLUP); // 设置中断引脚为输入并使用上拉电阻
   // Interval in microsecs
-  if (ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, Button_Reset)) {
-    Serial.print(F("Starting ITimer OK, millis() = ")); Serial.println(millis());
-  } else {
-    Serial.println(F("Can't set ITimer correctly. Select another freq. or interval"));
-  }
+  // if (ITimer.attachInterruptInterval(TIMER_INTERVAL_MS * 1000, Button_Reset)) {
+  //   Serial.print(F("Starting ITimer OK, millis() = ")); Serial.println(millis());
+  // } else {
+  //   Serial.println(F("Can't set ITimer correctly. Select another freq. or interval"));
+  // }
 
   EEPROM.begin(1024);
   // WiFi.forceSleepWake();
@@ -897,6 +895,7 @@ void loop()
 {
   LCD_reflash(0);
   Serial_set();
+  Button_Reset();
 }
 
 void LCD_reflash(int en)
