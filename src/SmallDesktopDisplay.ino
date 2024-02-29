@@ -62,7 +62,7 @@
 #define INITIAL_MUSIC 0
 
 #define TIMER_INTERVAL_MS 1000
-#define RESET_TIMES 15 //搭配TIMER_INTERVAL_MS預計是5秒
+#define RESET_TIMES 15 //搭配TIMER_INTERVAL_MS預設是15秒
 
 #if WM_EN
 #include <WiFiManager.h>
