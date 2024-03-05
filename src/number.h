@@ -37,6 +37,8 @@
 #include "font/W_1830_i9.h"
 #include "img/keyes.h"
 
+#include "img/ResetCounter.h"
+
 
 class Number
 {

@@ -349,14 +349,14 @@ void IndoorTem()
 #endif
 
 time_t Reset_TimeCount = second();
-bool Button_Status_Confirm(int Pin)
+int Button_Status_Confirm(int Pin)
 {
   uint8_t status = digitalRead(Pin);
   if (status == 0) {
-    return true;
+    return (int)(second()-Reset_TimeCount);
   } else { 
     Reset_TimeCount = second();
-    return false;
+    return 0;
   }
   
   if (second()-Reset_TimeCount >= RESET_TIMES)
@@ -469,7 +469,7 @@ void Serial_set()
         SMOD = "";
       //设置屏幕方向后重新刷屏并显示
         tft.setRotation(RoSet);
-        tft.fillScreen(0x0000);
+        tft.fillScreen(TFT_BLACK);
         LCD_reflash(1);//屏幕刷新程序
         UpdateWeater_en = 1;
         TJpgDec.drawJpg(15,183,temperature, sizeof(temperature));  //温度图标
@@ -727,7 +727,7 @@ void saveParamCallback(){
     delay(5);
   }
   tft.setRotation(LCD_Rotation);
-  tft.fillScreen(0x0000);
+  tft.fillScreen(TFT_BLACK);
   Web_win();
   loadNum--;
   loading(1);
@@ -788,7 +788,7 @@ void setup()
   tft.begin(); /* TFT init */
   tft.invertDisplay(1);//反转所有显示颜色：1反转，0正常
   tft.setRotation(LCD_Rotation);
-  tft.fillScreen(0x0000);
+  tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_BLACK, bgColor);
 
 #if INITIAL_MUSIC
@@ -887,17 +887,67 @@ void setup()
   Wifi_en = 0;
 }
 
+bool ClearEn = false;
+int PrebtnStatus = 0;
 void loop()
 {
-  bool btnStatus = Button_Status_Confirm(Button_Pin);
-
-  if (btnStatus == true) {
-    
+  int btnStatus = Button_Status_Confirm(Button_Pin);
+  if (btnStatus >= 3) {
+    if (PrebtnStatus != btnStatus) {
+      tft.fillScreen(TFT_BLACK);
+      switch (btnStatus) {
+        case  3: 
+          TJpgDec.drawJpg(0,0, ResetCounter03, sizeof(ResetCounter03));
+          break;
+        case  4: 
+          TJpgDec.drawJpg(0,0, ResetCounter04, sizeof(ResetCounter04));
+          break;
+        case  5:
+          TJpgDec.drawJpg(0,0, ResetCounter05, sizeof(ResetCounter05));
+          break;
+        case  6:
+          TJpgDec.drawJpg(0,0, ResetCounter06, sizeof(ResetCounter06));
+          break;
+        case  7:
+          TJpgDec.drawJpg(0,0, ResetCounter07, sizeof(ResetCounter07));
+          break;
+        case  8:
+          TJpgDec.drawJpg(0,0, ResetCounter08, sizeof(ResetCounter08));
+          break;
+        case  9:
+          TJpgDec.drawJpg(0,0, ResetCounter09, sizeof(ResetCounter09));
+          break;
+        case 10:
+          TJpgDec.drawJpg(0,0, ResetCounter10, sizeof(ResetCounter10));
+          break;
+        case 11:
+          TJpgDec.drawJpg(0,0, ResetCounter11, sizeof(ResetCounter11));
+          break;
+        case 12:
+          TJpgDec.drawJpg(0,0, ResetCounter12, sizeof(ResetCounter12));
+          break;
+        case 13:
+          TJpgDec.drawJpg(0,0, ResetCounter13, sizeof(ResetCounter13));
+          break;
+        case 14:
+          TJpgDec.drawJpg(0,0, ResetCounter14, sizeof(ResetCounter14));
+          break;
+        default:
+          Serial.println("Reset Counter Figure error");
+          break;
+      }
+    }
   } else {
-    LCD_reflash(0);
+    if (PrebtnStatus >= 3) {
+      tft.fillScreen(TFT_BLACK);
+      LCD_reflash(1);//屏幕刷新程序
+      UpdateWeater_en = 1;
+      TJpgDec.drawJpg(15,183,temperature, sizeof(temperature));  //温度图标
+      TJpgDec.drawJpg(15,213,humidity, sizeof(humidity));  //湿度图标
+    } else LCD_reflash(0);
   }
   Serial_set();
-  
+  PrebtnStatus = btnStatus;
 }
 
 void LCD_reflash(int en)
